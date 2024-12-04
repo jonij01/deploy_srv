@@ -9,6 +9,7 @@ from modules.jetbackup import JetBackupManager
 from modules.litespeed import LiteSpeedManager
 from modules.cron_manager import CronManager
 from utils.discord_notifier import DiscordNotifier
+from modules.easyapache_manager import EasyApacheManager
 
 
 class ServerSetupScript:
@@ -30,6 +31,7 @@ class ServerSetupScript:
         self.jetbackup_manager = JetBackupManager(self.notifier)
         self.litespeed_manager = LiteSpeedManager(self.notifier)
         self.cron_manager = CronManager(self.notifier)
+        self.easyapache_manager = EasyApacheManager("/deploy_srv/config", self.notifier)
 
     def main_menu(self):
         """
