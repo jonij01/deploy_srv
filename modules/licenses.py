@@ -10,6 +10,7 @@ class LicenseManager:
     def install_cloudlinux_license(self):
         """
         Solicita la clave de licencia de CloudLinux, la valida e intenta instalarla.
+        Si falla la activación, el script continuará con una advertencia.
         """
         try:
             # Solicitar la clave de licencia al usuario
@@ -21,18 +22,29 @@ class LicenseManager:
                 self.notifier.notify_error("No se proporcionó ninguna clave de licencia de CloudLinux. Instalación abortada.")
                 return False
 
-            print("Instalando la licencia de CloudLinux...")
+            print("Intentando instalar la licencia de CloudLinux...")
             # Ejecutar el comando de registro con la clave proporcionada
-            subprocess.run(["/usr/sbin/clnreg_ks", "--register", license_key], check=True)
+            result = subprocess.run(
+                ["/usr/sbin/clnreg_ks", "--register", license_key],
+                check=False,  # No interrumpir el flujo si el comando falla
+                capture_output=True,
+                text=True
+            )
 
-            print("Licencia de CloudLinux instalada correctamente.")
-            self.notifier.notify_success("Licencia de CloudLinux instalada correctamente.")
-            return True
-
-        except subprocess.CalledProcessError as e:
-            print(f"Error al instalar la licencia de CloudLinux: {str(e)}")
-            self.notifier.notify_error(f"Error al instalar la licencia de CloudLinux: {str(e)}")
-            return False
+            # Validar el código de salida del comando
+            if result.returncode == 0:
+                print("Licencia de CloudLinux instalada correctamente.")
+                self.notifier.notify_success("Licencia de CloudLinux instalada correctamente.")
+                return True
+            else:
+                # Si falla la activación, mostrar el error pero continuar
+                print(f"Advertencia: No se pudo activar la licencia de CloudLinux. Código de error: {result.returncode}")
+                print(f"Salida del comando: {result.stderr.strip()}")
+                self.notifier.notify_warning(
+                    f"No se pudo activar la licencia de CloudLinux. Código de error: {result.returncode}. "
+                    f"Detalles: {result.stderr.strip()}"
+                )
+                return False
 
         except Exception as e:
             print(f"Error inesperado al instalar la licencia de CloudLinux: {str(e)}")
@@ -61,10 +73,24 @@ class LicenseManager:
             subprocess.run(["bash", "i360deploy.sh"], check=True)
 
             # Registrar la licencia de Imunify360
-            subprocess.run(["imunify360-agent", "register", license_key], check=True)
+            result = subprocess.run(
+                ["imunify360-agent", "register", license_key],
+                check=False,
+                capture_output=True,
+                text=True
+            )
 
-            print("Imunify360 instalado y registrado correctamente.")
-            self.notifier.notify_success("Imunify360 instalado y registrado correctamente.")
+            # Validar el código de salida del comando
+            if result.returncode == 0:
+                print("Imunify360 instalado y registrado correctamente.")
+                self.notifier.notify_success("Imunify360 instalado y registrado correctamente.")
+            else:
+                print(f"Advertencia: No se pudo registrar la licencia de Imunify360. Código de error: {result.returncode}")
+                print(f"Salida del comando: {result.stderr.strip()}")
+                self.notifier.notify_warning(
+                    f"No se pudo registrar la licencia de Imunify360. Código de error: {result.returncode}. "
+                    f"Detalles: {result.stderr.strip()}"
+                )
 
             # Eliminar el script descargado para limpieza
             if os.path.exists("i360deploy.sh"):

@@ -6,19 +6,6 @@ class OSManager:
     def __init__(self, notifier: DiscordNotifier):
         self.notifier = notifier
 
-    def update_system(self):
-        """
-        Actualiza el sistema operativo usando el gestor de paquetes.
-        """
-        try:
-            print("Actualizando el sistema operativo...")
-            subprocess.run(["yum", "update", "-y"], check=True)
-            print("Sistema operativo actualizado correctamente.")
-            self.notifier.notify_success("Sistema operativo actualizado correctamente.")
-        except subprocess.CalledProcessError as e:
-            print(f"Error al actualizar el sistema operativo: {str(e)}")
-            self.notifier.notify_error(f"Error al actualizar el sistema operativo: {str(e)}")
-
     def check_os(self):
         """
         Verifica la versión del sistema operativo.
