@@ -89,7 +89,7 @@ class ServerSetupScript:
             self.disk_manager.mount_disks()
             self.softaculous_manager.install_softaculous()
             self.jetbackup_manager.install_jetbackup()
-            self.os_manager.configure_easyapache()
+            self.easyapache_manager.configure_easyapache()
             self.litespeed_manager.install_litespeed()
             self.cron_manager.add_cronjobs()
             print("¡Configuración automática completada con éxito!")
@@ -127,7 +127,7 @@ class ServerSetupScript:
             elif manual_choice == "11":
                 self.jetbackup_manager.install_jetbackup()
             elif manual_choice == "12":
-                self.os_manager.configure_easyapache()
+                self.easyapache_manager.configure_easyapache()
             elif manual_choice == "13":
                 self.litespeed_manager.install_litespeed()
             elif manual_choice == "14":
@@ -139,26 +139,21 @@ class ServerSetupScript:
 
     def run(self):
         """
-        Método principal que controla el flujo del script.
+        Método principal que ejecuta el script.
         """
         while True:
             choice = self.main_menu()
-
-            if choice == "1":  # Configuración automática
+            if choice == "1":
                 self.run_automatic_setup()
-
-            elif choice == "2":  # Configuración manual
+            elif choice == "2":
                 self.run_manual_setup()
-
-            elif choice == "3":  # Salir
-                print("Saliendo del script...")
+            elif choice == "3":
+                print("¡Gracias por usar el script!")
                 break
-
             else:
                 print("Opción no válida. Por favor, intente de nuevo.")
 
 
-# Ejecutar el script
 if __name__ == "__main__":
     script = ServerSetupScript()
     script.run()
