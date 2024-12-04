@@ -1,0 +1,73 @@
+# Recolecta información de pánico para diagnóstico al reiniciar el sistema.
+@reboot /usr/sbin/cloudlinux-collect-panic-info
+
+# Ejecuta tareas de cPanel necesarias al inicio.
+
+# Monitorea el uso de CPU y gestiona la detección de abusos cada 5 minutos.
+*/5 * * * * /usr/local/cpanel/scripts/dcpumon-wrapper >/dev/null 2>&1
+
+# Realiza chequeos de spam basados en las estadísticas de Exim a los 5, 20, 35 y 50 minutos de cada hora.
+5,20,35,50 * * * * /usr/local/cpanel/scripts/eximstats_spam_check 2>&1
+
+# Procesa la cola de DNS para mantener la estabilidad del servicio cada cuarto de hora.
+0,15,30,45 * * * * /usr/local/cpanel/whostmgr/bin/dnsqueue > /dev/null 2>&1
+
+# Limpia sesiones PHP antiguas para optimizar el rendimiento a los 9 y 39 minutos de cada hora.
+9,39 * * * * /usr/local/cpanel/scripts/clean_user_php_sessions > /dev/null 2>&1
+
+# Gestiona tareas en cola del equipo de soporte o administración cada hora al minuto 4.
+4 * * * * /usr/local/cpanel/bin/process_team_queue > /dev/null 2>&1
+
+# Repara Perl de cPanel y ejecuta actualizaciones automáticas a las 22:50.
+50 22 * * * (/usr/local/cpanel/scripts/fix-cpanel-perl; /usr/local/cpanel/scripts/upcp --cron > /dev/null)
+
+# Envía notificaciones sobre el estado de los Addons de cPanel a las 22:49.
+49 22 * * * /usr/local/cpanel/whostmgr/docroot/cgi/cpaddons_report.pl --notify
+
+# Realiza un respaldo completo del sistema a las 2:00 AM.
+0 2 * * * /usr/local/cpanel/bin/backup
+
+# Verifica y mantiene los registros de acceso actualizados cada hora a los 35 minutos.
+35 * * * * /usr/bin/test -x /usr/local/cpanel/bin/tail-check && /usr/local/cpanel/bin/tail-check
+
+# Limpia la base de datos de Exim para optimizar su rendimiento a las 6:00 AM.
+0 6 * * * /usr/local/cpanel/scripts/exim_tidydb > /dev/null 2>&1
+
+# Optimiza la base de datos de estadísticas de Exim a las 5:30 AM.
+30 5 * * * /usr/local/cpanel/scripts/optimize_eximstats > /dev/null 2>&1
+
+# Actualiza el caché de Mailman cada 4 horas a los 45 minutos.
+45 */4 * * * /usr/local/cpanel/bin/update_mailman_cache > /dev/null 2>&1
+
+# Ejecuta la autoreparación del sistema de gestión de recuperación cada 6 horas a los 15 minutos.
+15 */6 * * * /usr/local/cpanel/scripts/autorepair recoverymgmt >/dev/null 2>&1
+
+# Actualiza el caché de la base de datos cada 4 horas a los 30 minutos.
+30 */4 * * * /usr/bin/test -x /usr/local/cpanel/scripts/update_db_cache && /usr/local/cpanel/scripts/update_db_cache
+
+# Actualiza el almacenamiento de usuarios de MySQL cada 2 horas a los 25 minutos.
+25 */2 * * * /usr/local/cpanel/bin/mysqluserstore >/dev/null 2>&1
+
+# Indexa las bases de datos cada 2 horas a los 15 minutos.
+15 */2 * * * /usr/local/cpanel/bin/dbindex >/dev/null 2>&1
+
+# Reduce la base de datos IP de ModSecurity cada 2 horas.
+0 */2 * * * /usr/local/cpanel/scripts/shrink_modsec_ip_database -x 2>&1
+
+# Ejecuta el agente de HetrixTools cada minuto y registra la salida.
+* * * * * bash /etc/hetrixtools/hetrixtools_agent.sh >> /etc/hetrixtools/hetrixtools_cron.log 2>&1
+
+# Actualiza la base de datos antivirus ClamAV a la 1:02 AM.
+2 1 * * * /usr/local/cpanel/3rdparty/bin/freshclam --quiet --no-warnings
+
+# Script de sincronización en tiempo real para cuentas totalizadas en Sheets, cada 30 min.
+*/30 * * * * python3 /mantenimiento/SyncAccounts/SyncDocs.py
+
+# Control de cuentas diarias creadas y eliminadas en el servidor, a las 8:00 AM.
+0 8 * * * python3 /mantenimiento/ControlDeCuentas/ControlCuentas.py
+
+# Sincronizar uso de HW de la VM en Sheets, cada hora.
+0 * * * * cd /mantenimiento/SyncHWDC/ && python3 SyncHWDC.py
+
+# Limpiar caché /tmp del servidor, 7:00 AM y 10:00 PM.
+0 7,22 * * * /mantenimiento/CleanCache/clean_cache.sh
