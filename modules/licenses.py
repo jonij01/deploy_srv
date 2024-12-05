@@ -85,7 +85,7 @@ class LicenseManager:
 
     def install_cloudlinux_license(self):
         """
-        Solicita la clave de licencia de CloudLinux, valida e intenta instalarla.
+        Instala la licencia de CloudLinux
         """
         try:
             if self.check_cloudlinux_license():
@@ -97,17 +97,15 @@ class LicenseManager:
                 self.notifier.notify_error("El script no tiene permisos de superusuario. Abortando instalación.")
                 return False
 
-            license_key = self.cloudlinux_key if hasattr(self, 'cloudlinux_key') and self.cloudlinux_key else input("Por favor, ingrese la clave de licencia de CloudLinux: ").strip()
-
-            if not license_key:
+            if not self.cloudlinux_key:
                 print("No se proporcionó ninguna clave de licencia. Abortando instalación.")
-                self.notifier.notify_error("No se proporcionó ninguna clave de licencia de CloudLinux. Instalación abortada.")
+                self.notifier.notify_error("No se proporcionó ninguna clave de licencia de CloudLinux.")
                 return False
 
             print("Intentando instalar la licencia de CloudLinux...")
             command = [
                 "/usr/sbin/rhnreg_ks",
-                f"--activationkey={license_key}",
+                f"--activationkey={self.cloudlinux_key}",
                 "--force",
                 "--migrate-silently"
             ]
@@ -122,17 +120,14 @@ class LicenseManager:
                 self.notifier.notify_success("Licencia de CloudLinux instalada correctamente.")
                 return True
             else:
-                print(f"Advertencia: No se pudo activar la licencia de CloudLinux. Código de error: {result.returncode}")
-                print(f"Salida del comando: {result.stderr.strip() or result.stdout.strip()}")
-                self.notifier.notify_error(
-                    f"No se pudo activar la licencia de CloudLinux. Código de error: {result.returncode}. "
-                    f"Detalles: {result.stderr.strip() or result.stdout.strip()}"
-                )
+                print(f"Error: No se pudo activar la licencia de CloudLinux. Código: {result.returncode}")
+                print(f"Detalles: {result.stderr.strip() or result.stdout.strip()}")
+                self.notifier.notify_error(f"Error activando licencia de CloudLinux: {result.stderr}")
                 return False
 
         except Exception as e:
             print(f"Error inesperado al instalar la licencia de CloudLinux: {str(e)}")
-            self.notifier.notify_error(f"Error inesperado al instalar la licencia de CloudLinux: {str(e)}")
+            self.notifier.notify_error(f"Error en instalación de CloudLinux: {str(e)}")
             return False
 
     def install_imunify360(self):
@@ -150,29 +145,50 @@ class LicenseManager:
                 return False
 
             print("Instalando Imunify360...")
-            commands = [
-                'wget https://repo.imunify360.cloudlinux.com/defence360/i360deploy.sh',
-                f'bash i360deploy.sh --key {self.imunify360_key}',
-                'rm -f i360deploy.sh'
-            ]
+            
+            # Descargar el script de instalación
+            download_cmd = 'wget -O i360deploy.sh https://repo.imunify360.cloudlinux.com/defence360/i360deploy.sh'
+            result = subprocess.run(
+                download_cmd,
+                shell=True,
+                text=True,
+                capture_output=True
+            )
+            
+            if result.returncode != 0:
+                print(f"Error descargando el script de instalación: {result.stderr}")
+                self.notifier.notify_error(f"Error descargando Imunify360: {result.stderr}")
+                return False
 
-            for cmd in commands:
-                result = subprocess.run(
-                    cmd,
-                    shell=True,
-                    text=True,
-                    capture_output=True
-                )
-                
-                if result.returncode != 0:
-                    print(f"Error ejecutando comando: {cmd}")
-                    print(f"Error: {result.stderr}")
-                    self.notifier.notify_error(f"Error instalando Imunify360: {result.stderr}")
-                    return False
+            # Dar permisos de ejecución al script
+            os.chmod('i360deploy.sh', 0o755)
 
-            print("Imunify360 instalado exitosamente.")
-            self.notifier.notify_success("Imunify360 instalado exitosamente.")
-            return True
+            # Ejecutar el script de instalación
+            install_cmd = f'bash i360deploy.sh --key {self.imunify360_key} --yes'
+            result = subprocess.run(
+                install_cmd,
+                shell=True,
+                text=True,
+                capture_output=True
+            )
+
+            # Limpiar el script descargado
+            os.remove('i360deploy.sh')
+
+            if result.returncode != 0:
+                print(f"Error en la instalación de Imunify360: {result.stderr}")
+                self.notifier.notify_error(f"Error instalando Imunify360: {result.stderr}")
+                return False
+
+            # Verificar la instalación
+            if self.check_imunify360_installation():
+                print("Imunify360 instalado exitosamente.")
+                self.notifier.notify_success("Imunify360 instalado exitosamente.")
+                return True
+            else:
+                print("La instalación pareció exitosa pero no se detecta el servicio.")
+                self.notifier.notify_error("Instalación de Imunify360 incompleta")
+                return False
 
         except Exception as e:
             print(f"Error al instalar Imunify360: {str(e)}")
