@@ -79,10 +79,10 @@ class ServerSetupScript:
         """
         print("Iniciando configuración automática...")
         try:
-            self.os_manager.update_system()
             self.license_manager.install_cloudlinux_license()
             self.cpanel_manager.install_cpanel()
             self.license_manager.install_imunify360()
+            self.os_manager.update_system()
             self.csf_manager.install_csf()
             self.csf_manager.configure_csf()
             self.ftp_manager.configure_ftp()
