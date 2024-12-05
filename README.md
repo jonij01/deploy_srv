@@ -1,4 +1,4 @@
-# cPanelToolsIntall
+# cPanelTools
 ## Script de Automatización para Servidores CloudLinux
 
 ### Descripción
