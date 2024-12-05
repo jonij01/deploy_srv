@@ -186,18 +186,27 @@ class LicenseManager:
             
             # Descargar el script de instalación
             if not os.path.exists('i360deploy.sh'):
-                download_command = "wget https://repo.imunify360.cloudlinux.com/defence360/i360deploy.sh"
-                download_result = subprocess.run(
-                    download_command,
+                print("Descargando script de instalación...")
+                download_process = subprocess.Popen(
+                    "wget https://repo.imunify360.cloudlinux.com/defence360/i360deploy.sh",
                     shell=True,
-                    text=True,
-                    capture_output=True
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    universal_newlines=True
                 )
+                
+                # Mostrar salida en tiempo real
+                while True:
+                    output = download_process.stdout.readline()
+                    if output == '' and download_process.poll() is not None:
+                        break
+                    if output:
+                        print(output.strip())
 
-                if download_result.returncode != 0:
-                    print(f"Error al descargar el script de instalación de Imunify360.")
-                    print(f"Detalles: {download_result.stderr}")
-                    self.notifier.notify_error(f"Error al descargar script de Imunify360: {download_result.stderr}")
+                if download_process.returncode != 0:
+                    error = download_process.stderr.read()
+                    print(f"Error al descargar el script de instalación: {error}")
+                    self.notifier.notify_error(f"Error al descargar script de Imunify360: {error}")
                     return False
 
             # Hacer el script ejecutable
@@ -207,28 +216,39 @@ class LicenseManager:
             install_command = f"bash i360deploy.sh --key {license_key}"
             print(f"Ejecutando: {install_command}")
             
-            install_result = subprocess.run(
+            # Usar Popen para mostrar la salida en tiempo real
+            install_process = subprocess.Popen(
                 install_command,
                 shell=True,
-                text=True,
-                capture_output=True
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True
             )
 
-            # Mostrar la salida en tiempo real
-            print(install_result.stdout)
-            if install_result.stderr:
-                print(install_result.stderr)
+            # Mostrar salida en tiempo real
+            while True:
+                output = install_process.stdout.readline()
+                if output == '' and install_process.poll() is not None:
+                    break
+                if output:
+                    print(output.strip())
 
-            if install_result.returncode == 0:
+            # Esperar a que termine el proceso y obtener el código de salida
+            install_process.wait()
+            
+            if install_process.returncode == 0:
                 print("Imunify360 instalado correctamente.")
                 self.notifier.notify_success("Imunify360 instalado correctamente.")
                 return True
             else:
-                error_msg = f"Error al instalar Imunify360. Código: {install_result.returncode}"
-                print(error_msg)
-                print(f"Salida: {install_result.stdout}")
-                print(f"Error: {install_result.stderr}")
-                self.notifier.notify_error(error_msg)
+                error = install_process.stderr.read()
+                print(f"Advertencia: Falló la instalación de Imunify360")
+                print(f"Código de error: {install_process.returncode}")
+                print(f"Error: {error}")
+                if hasattr(self.notifier, 'notify_warning'):
+                    self.notifier.notify_warning(f"Falló la instalación de Imunify360: {error}")
+                else:
+                    self.notifier.notify_error(f"Falló la instalación de Imunify360: {error}")
                 return False
 
         except Exception as e:
