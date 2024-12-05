@@ -32,6 +32,28 @@ class LicenseManager:
             print(f"Error al verificar la licencia de CloudLinux: {str(e)}")
             return False
 
+    def check_imunify360_installation(self):
+        """
+        Verifica si Imunify360 ya está instalado
+        """
+        try:
+            # Verificar si el servicio imunify360 existe
+            result = subprocess.run(
+                ['systemctl', 'status', 'imunify360'],
+                text=True,
+                capture_output=True
+            )
+            
+            if result.returncode == 0:
+                print("Imunify360 ya está instalado en este sistema.")
+                self.notifier.notify_success("Imunify360 ya está instalado.")
+                return True
+            return False
+            
+        except Exception as e:
+            print(f"Error al verificar la instalación de Imunify360: {str(e)}")
+            return False
+
     def set_license_keys(self):
         """
         Solicita y almacena las claves de licencia para su uso posterior
@@ -39,19 +61,25 @@ class LicenseManager:
         try:
             print("\n=== Configuración de Licencias ===")
             
-            # Solicitar licencia de CloudLinux
-            self.cloudlinux_key = input("Por favor, ingrese la clave de licencia de CloudLinux: ").strip()
-            if not self.cloudlinux_key:
-                print("Error: La clave de CloudLinux no puede estar vacía")
-                self.notifier.notify_error("Error: Clave de CloudLinux vacía")
-                return False
+            # Primero verificar CloudLinux
+            if not self.check_cloudlinux_license():
+                self.cloudlinux_key = input("Por favor, ingrese la clave de licencia de CloudLinux: ").strip()
+                if not self.cloudlinux_key:
+                    print("Error: La clave de CloudLinux no puede estar vacía")
+                    self.notifier.notify_error("Error: Clave de CloudLinux vacía")
+                    return False
+            else:
+                print("CloudLinux ya está instalado, omitiendo configuración de licencia.")
 
-            # Solicitar licencia de Imunify360
-            self.imunify360_key = input("Por favor, ingrese la clave de licencia de Imunify360: ").strip()
-            if not self.imunify360_key:
-                print("Error: La clave de Imunify360 no puede estar vacía")
-                self.notifier.notify_error("Error: Clave de Imunify360 vacía")
-                return False
+            # Luego verificar Imunify360
+            if not self.check_imunify360_installation():
+                self.imunify360_key = input("Por favor, ingrese la clave de licencia de Imunify360: ").strip()
+                if not self.imunify360_key:
+                    print("Error: La clave de Imunify360 no puede estar vacía")
+                    self.notifier.notify_error("Error: Clave de Imunify360 vacía")
+                    return False
+            else:
+                print("Imunify360 ya está instalado, omitiendo configuración de licencia.")
 
             return True
 
@@ -135,6 +163,11 @@ class LicenseManager:
         Instala Imunify360 en el servidor usando la clave de licencia proporcionada.
         """
         try:
+            # Verificar si Imunify360 ya está instalado
+            if self.check_imunify360_installation():
+                print("Imunify360 ya está instalado. No es necesario reinstalar.")
+                return True
+
             # Validar permisos de superusuario
             if os.geteuid() != 0:
                 print("Este script debe ejecutarse con permisos de superusuario (root).")
