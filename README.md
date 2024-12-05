@@ -1,4 +1,4 @@
-# Panel Manager para CloudLinux
+# cPanelToolsIntall
 ## Script de Automatización para Servidores CloudLinux
 
 ### Descripción
