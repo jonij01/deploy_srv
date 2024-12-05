@@ -8,25 +8,21 @@ Este script proporciona una suite completa de herramientas para la gestión y au
 - Sistema operativo CloudLinux
 - Python 3.6 o superior
 - Permisos de root
-- Conexión a internet
 
 ### Módulos y Funcionalidades
 
 #### Gestión de Panel
 - **cpanel.py**: Administración de cPanel
-  - Instalación y configuración
-  - Gestión de licencias
-  - Automatización de tareas comunes
+  - Instalación y configuración básica de cPanel
 
 #### Seguridad
 - **csf.py**: ConfigServer Firewall
-  - Configuración de firewall
-  - Gestión de reglas
-  - Monitoreo de seguridad
+  - Instalación de CSF interno
+  - Configuración de firewall automatizada por plantilla
 
 - **licenses.py**: Gestión de Licencias
-  - CloudLinux
-  - Imunify360
+  - Instalación de licencia CloudLinux
+  - Instalación de licencia Imunify360
   - Automatización de activación
 
 #### Optimización y Rendimiento
@@ -35,30 +31,27 @@ Este script proporciona una suite completa de herramientas para la gestión y au
   - Optimización de rendimiento
 
 - **easyapache_manager.py**: Gestión de EasyApache
-  - Configuración de PHP
-  - Gestión de módulos Apache
-
+  - Aplicar configuración de EasyApache predeterminada para cPanel por medio de CLI
+  
 #### Backup y Almacenamiento
 - **jetbackup.py**: Sistema de Respaldo
-  - Configuración de copias de seguridad
-  - Programación de backups
+  - Instalación de Jetbackup sin configuración nativa.
+    
 
 - **disks.py**: Gestión de Discos
-  - Monitoreo de espacio
-  - Gestión de particiones
-
+  - Particiona dos discos,  /home y /mnt para cPanel
+    
 #### Utilidades
 - **cron_manager.py**: Gestor de Tareas Programadas
-  - Creación y gestión de cronjobs
-  - Automatización de tareas
+  - Automatiza ciertos CronJobs y los eleva a crontab para que sean ejecutados según sean agregados en el .txt
+
 
 - **ftp.py**: Gestión FTP
-  - Configuración de servicios FTP
-  - Gestión de usuarios
+  - Asignar Pure-Ftpd como predeterminado para cPanel
+  - Configura una regla de puertos específicos, Bind y PassivePorts
 
 - **softaculous.py**: Instalador de Aplicaciones
-  - Gestión de instalaciones automáticas
-  - Actualizaciones de scripts
+  - Activa IonCube y instala Softacolus
 
 #### Sistema
 - **os_manager.py**: Gestión del Sistema Operativo
