@@ -5,7 +5,7 @@ from utils.discord_notifier import DiscordNotifier
 class CronManager:
     def __init__(self, notifier: DiscordNotifier):
         self.notifier = notifier
-        self.cron_config_path = "config/cronjobs/Crontxt"
+        self.cron_config_path = "config/cronjobs/Cron.txt"
         self.system_crontab = "/var/spool/cron/root"
 
     def backup_current_crontab(self):
