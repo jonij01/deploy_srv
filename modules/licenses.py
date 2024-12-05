@@ -5,6 +5,60 @@ from utils.discord_notifier import DiscordNotifier
 class LicenseManager:
     def __init__(self, notifier: DiscordNotifier):
         self.notifier = notifier
+        self.cloudlinux_key = None
+        self.imunify360_key = None
+
+    def check_cloudlinux_license(self):
+        """
+        Verifica si CloudLinux ya está instalado y activado
+        """
+        try:
+            # Verificar si el archivo de licencia existe
+            if os.path.exists('/etc/sysconfig/rhn/systemid'):
+                # Intentar obtener información de la licencia
+                result = subprocess.run(
+                    ['rhn-channel', '--list'],
+                    text=True,
+                    capture_output=True
+                )
+                
+                if result.returncode == 0 and 'cloudlinux' in result.stdout.lower():
+                    print("CloudLinux ya está instalado y activado en este sistema.")
+                    self.notifier.notify_success("CloudLinux ya está instalado y activado.")
+                    return True
+            return False
+            
+        except Exception as e:
+            print(f"Error al verificar la licencia de CloudLinux: {str(e)}")
+            return False
+
+    def set_license_keys(self):
+        """
+        Solicita y almacena las claves de licencia para su uso posterior
+        """
+        try:
+            print("\n=== Configuración de Licencias ===")
+            
+            # Solicitar licencia de CloudLinux
+            self.cloudlinux_key = input("Por favor, ingrese la clave de licencia de CloudLinux: ").strip()
+            if not self.cloudlinux_key:
+                print("Error: La clave de CloudLinux no puede estar vacía")
+                self.notifier.notify_error("Error: Clave de CloudLinux vacía")
+                return False
+
+            # Solicitar licencia de Imunify360
+            self.imunify360_key = input("Por favor, ingrese la clave de licencia de Imunify360: ").strip()
+            if not self.imunify360_key:
+                print("Error: La clave de Imunify360 no puede estar vacía")
+                self.notifier.notify_error("Error: Clave de Imunify360 vacía")
+                return False
+
+            return True
+
+        except Exception as e:
+            print(f"Error al configurar las licencias: {str(e)}")
+            self.notifier.notify_error(f"Error al configurar las licencias: {str(e)}")
+            return False
 
     def install_cloudlinux_license(self):
         """
@@ -12,14 +66,19 @@ class LicenseManager:
         Si requiere migración, acepta automáticamente la migración.
         """
         try:
+            # Verificar si CloudLinux ya está instalado
+            if self.check_cloudlinux_license():
+                print("CloudLinux ya está instalado y activado. No es necesario reinstalar.")
+                return True
+
             # Validar si el script se ejecuta con permisos de superusuario
             if os.geteuid() != 0:
                 print("Este script debe ejecutarse con permisos de superusuario (root).")
                 self.notifier.notify_error("El script no tiene permisos de superusuario. Abortando instalación.")
                 return False
 
-            # Solicitar la clave de licencia al usuario
-            license_key = input("Por favor, ingrese la clave de licencia de CloudLinux: ").strip()
+            # Usar la clave almacenada si existe, si no, solicitarla
+            license_key = self.cloudlinux_key if hasattr(self, 'cloudlinux_key') and self.cloudlinux_key else input("Por favor, ingrese la clave de licencia de CloudLinux: ").strip()
 
             # Validar que se haya proporcionado una clave
             if not license_key:
@@ -73,87 +132,74 @@ class LicenseManager:
 
     def install_imunify360(self):
         """
-        Solicita la clave de licencia de Imunify360, valida e instala Imunify360 en el servidor.
+        Instala Imunify360 en el servidor usando la clave de licencia proporcionada.
         """
         try:
-            # Validar si el script se ejecuta con permisos de superusuario
+            # Validar permisos de superusuario
             if os.geteuid() != 0:
                 print("Este script debe ejecutarse con permisos de superusuario (root).")
                 self.notifier.notify_error("El script no tiene permisos de superusuario. Abortando instalación.")
                 return False
 
-            # Solicitar la clave de licencia al usuario
-            license_key = input("Por favor, ingrese la clave de licencia de Imunify360: ").strip()
+            # Usar la clave almacenada o solicitarla
+            license_key = self.imunify360_key if hasattr(self, 'imunify360_key') and self.imunify360_key else input("Por favor, ingrese la clave de licencia de Imunify360: ").strip()
 
-            # Validar que se haya proporcionado una clave
             if not license_key:
                 print("No se proporcionó ninguna clave de licencia. Abortando instalación.")
                 self.notifier.notify_error("No se proporcionó ninguna clave de licencia de Imunify360. Instalación abortada.")
                 return False
 
             print("Instalando Imunify360...")
+            
             # Descargar el script de instalación
-            download_command = [
-                "wget",
-                "https://repo.imunify360.cloudlinux.com/defence360/i360deploy.sh"
-            ]
-            download_result = subprocess.run(
-                download_command,
-                text=True,
-                capture_output=True
-            )
-
-            # Verificar si la descarga fue exitosa
-            if download_result.returncode != 0:
-                print(f"Error al descargar el script de instalación de Imunify360.")
-                print(f"Detalles: {download_result.stderr.strip() or download_result.stdout.strip()}")
-                self.notifier.notify_error(
-                    f"No se pudo descargar el script de instalación de Imunify360. "
-                    f"Detalles: {download_result.stderr.strip() or download_result.stdout.strip()}"
+            if not os.path.exists('i360deploy.sh'):
+                download_command = "wget https://repo.imunify360.cloudlinux.com/defence360/i360deploy.sh"
+                download_result = subprocess.run(
+                    download_command,
+                    shell=True,
+                    text=True,
+                    capture_output=True
                 )
-                return False
+
+                if download_result.returncode != 0:
+                    print(f"Error al descargar el script de instalación de Imunify360.")
+                    print(f"Detalles: {download_result.stderr}")
+                    self.notifier.notify_error(f"Error al descargar script de Imunify360: {download_result.stderr}")
+                    return False
 
             # Hacer el script ejecutable
-            os.chmod("i360deploy.sh", 0o700)
+            os.chmod("i360deploy.sh", 0o755)
 
-            # Ejecutar el script de instalación con la clave de licencia
-            install_command = [
-                "bash",
-                "i360deploy.sh",
-                "--key",
-                license_key
-            ]
+            # Ejecutar el script de instalación
+            install_command = f"bash i360deploy.sh --key {license_key}"
+            print(f"Ejecutando: {install_command}")
+            
             install_result = subprocess.run(
                 install_command,
+                shell=True,
                 text=True,
                 capture_output=True
             )
 
-            # Validar el código de salida del comando de instalación
+            # Mostrar la salida en tiempo real
+            print(install_result.stdout)
+            if install_result.stderr:
+                print(install_result.stderr)
+
             if install_result.returncode == 0:
                 print("Imunify360 instalado correctamente.")
                 self.notifier.notify_success("Imunify360 instalado correctamente.")
                 return True
             else:
-                print(f"Advertencia: No se pudo instalar Imunify360. Código de error: {install_result.returncode}")
-                print(f"Salida del comando: {install_result.stderr.strip() or install_result.stdout.strip()}")
-                self.notifier.notify_error(
-                    f"No se pudo instalar Imunify360. Código de error: {install_result.returncode}. "
-                    f"Detalles: {install_result.stderr.strip() or install_result.stdout.strip()}"
-                )
+                error_msg = f"Error al instalar Imunify360. Código: {install_result.returncode}"
+                print(error_msg)
+                print(f"Salida: {install_result.stdout}")
+                print(f"Error: {install_result.stderr}")
+                self.notifier.notify_error(error_msg)
                 return False
 
-        except FileNotFoundError as e:
-            print(f"Error: No se encontró el archivo o comando necesario: {str(e)}")
-            self.notifier.notify_error(f"Error: No se encontró el archivo o comando necesario: {str(e)}")
-            return False
-
-        except PermissionError as e:
-            print(f"Error de permisos: {str(e)}")
-            self.notifier.notify_error(f"Error de permisos: {str(e)}")
-            return False
-
         except Exception as e:
-            print(f"Error inesperado al instalar Imunify360: {str(e)}")
-            self.notifier.notify_error(f"Error inesperado al instalar Imunify360: {str(e)}")
+            error_msg = f"Error inesperado al instalar Imunify360: {str(e)}"
+            print(error_msg)
+            self.notifier.notify_error(error_msg)
             return False

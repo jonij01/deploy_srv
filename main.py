@@ -13,13 +13,10 @@ from modules.easyapache_manager import EasyApacheManager
 
 
 class ServerSetupScript:
-    """
-    Clase principal que controla el flujo del script de configuración del servidor.
-    """
     def __init__(self):
-        # Inicializar el sistema de notificaciones de Discord
+        # Mantener todas las inicializaciones como están
         self.notifier = DiscordNotifier("https://discord.com/api/webhooks/1313584502207152128/YyVnmkV4WbZyeQGFz4jYOZlusx1WZaWMd8IyEAi7VSvBl6zaphcwW3mV7yT9Am55uFag")
-
+        
         # Inicializar las clases principales para manejar las configuraciones
         self.os_manager = OSManager(self.notifier)
         self.license_manager = LicenseManager(self.notifier)
@@ -79,9 +76,31 @@ class ServerSetupScript:
         """
         print("Iniciando configuración automática...")
         try:
-            self.license_manager.install_cloudlinux_license()
-            self.cpanel_manager.install_cpanel()
-            self.license_manager.install_imunify360()
+            # 1. Solicitar las licencias al inicio
+            if not self.license_manager.set_license_keys():
+                print("Error: No se pudieron configurar las licencias necesarias.")
+                self.notifier.notify_error("Configuración de licencias fallida")
+                return
+
+            # 2. Instalar licencia de CloudLinux
+            if not self.license_manager.install_cloudlinux_license():
+                print("Error: Falló la instalación de la licencia de CloudLinux")
+                self.notifier.notify_error("Falló la instalación de CloudLinux")
+                return
+
+            # 3. Instalar cPanel
+            if not self.cpanel_manager.install_cpanel():
+                print("Error: Falló la instalación de cPanel")
+                self.notifier.notify_error("Falló la instalación de cPanel")
+                return
+
+            # 4. Instalar Imunify360
+            if not self.license_manager.install_imunify360():
+                print("Advertencia: Falló la instalación de Imunify360")
+                self.notifier.notify_warning("Falló la instalación de Imunify360")
+                # Continuamos con el resto del proceso aunque falle Imunify360
+
+            # Continuar con el resto de las instalaciones
             self.os_manager.update_system()
             self.csf_manager.install_csf()
             self.csf_manager.configure_csf()
@@ -92,6 +111,7 @@ class ServerSetupScript:
             self.easyapache_manager.configure_easyapache()
             self.litespeed_manager.install_litespeed()
             self.cron_manager.add_cronjobs()
+
             print("¡Configuración automática completada con éxito!")
             self.notifier.notify_success("Configuración automática completada con éxito.")
         except Exception as e:
@@ -104,38 +124,48 @@ class ServerSetupScript:
         """
         while True:
             manual_choice = self.manual_menu()
-            if manual_choice == "1":
-                self.os_manager.check_os()
-            elif manual_choice == "2":
-                self.license_manager.install_cloudlinux_license()
-            elif manual_choice == "3":
-                self.cpanel_manager.install_cpanel()
-            elif manual_choice == "4":
-                self.os_manager.update_system()
-            elif manual_choice == "5":
-                self.license_manager.install_imunify360()
-            elif manual_choice == "6":
-                self.csf_manager.install_csf()
-            elif manual_choice == "7":
-                self.csf_manager.configure_csf()
-            elif manual_choice == "8":
-                self.ftp_manager.configure_ftp()
-            elif manual_choice == "9":
-                self.disk_manager.mount_disks()
-            elif manual_choice == "10":
-                self.softaculous_manager.install_softaculous()
-            elif manual_choice == "11":
-                self.jetbackup_manager.install_jetbackup()
-            elif manual_choice == "12":
-                self.easyapache_manager.configure_easyapache()
-            elif manual_choice == "13":
-                self.litespeed_manager.install_litespeed()
-            elif manual_choice == "14":
-                self.cron_manager.add_cronjobs()
-            elif manual_choice == "15":
-                break
-            else:
-                print("Opción no válida. Por favor, intente de nuevo.")
+            try:
+                if manual_choice == "1":
+                    self.os_manager.check_os()
+                elif manual_choice == "2":
+                    # Asegurar que tenemos las licencias antes de instalar
+                    if not hasattr(self.license_manager, 'cloudlinux_key'):
+                        self.license_manager.set_license_keys()
+                    self.license_manager.install_cloudlinux_license()
+                elif manual_choice == "3":
+                    self.cpanel_manager.install_cpanel()
+                elif manual_choice == "4":
+                    self.os_manager.update_system()
+                elif manual_choice == "5":
+                    # Asegurar que tenemos las licencias antes de instalar
+                    if not hasattr(self.license_manager, 'imunify360_key'):
+                        self.license_manager.set_license_keys()
+                    self.license_manager.install_imunify360()
+                elif manual_choice == "6":
+                    self.csf_manager.install_csf()
+                elif manual_choice == "7":
+                    self.csf_manager.configure_csf()
+                elif manual_choice == "8":
+                    self.ftp_manager.configure_ftp()
+                elif manual_choice == "9":
+                    self.disk_manager.mount_disks()
+                elif manual_choice == "10":
+                    self.softaculous_manager.install_softaculous()
+                elif manual_choice == "11":
+                    self.jetbackup_manager.install_jetbackup()
+                elif manual_choice == "12":
+                    self.easyapache_manager.configure_easyapache()
+                elif manual_choice == "13":
+                    self.litespeed_manager.install_litespeed()
+                elif manual_choice == "14":
+                    self.cron_manager.add_cronjobs()
+                elif manual_choice == "15":
+                    break
+                else:
+                    print("Opción no válida. Por favor, intente de nuevo.")
+            except Exception as e:
+                print(f"Error durante la operación manual: {str(e)}")
+                self.notifier.notify_error(f"Error durante la operación manual: {str(e)}")
 
     def run(self):
         """
@@ -148,12 +178,12 @@ class ServerSetupScript:
             elif choice == "2":
                 self.run_manual_setup()
             elif choice == "3":
-                print("¡Gracias por usar el script!")
+                print("Saliendo del script...")
                 break
             else:
                 print("Opción no válida. Por favor, intente de nuevo.")
 
 
 if __name__ == "__main__":
-    script = ServerSetupScript()
-    script.run()
+    setup = ServerSetupScript()
+    setup.run()
