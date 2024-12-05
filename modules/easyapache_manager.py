@@ -8,7 +8,7 @@ from utils.discord_notifier import DiscordNotifier
 class EasyApacheManager:
     def __init__(self, config_path: str, notifier: Optional[DiscordNotifier] = None):
         self.config_path = config_path
-        self.profile_path = os.path.join(config_path, 'easyapache/EasyGeneral.json')
+        self.profile_path = os.path.join(config_path, 'config/easyapache/EasyGeneral.json')
         self.backup_dir = os.path.join(config_path, 'easyapache/backups')
         self.notifier = notifier
         

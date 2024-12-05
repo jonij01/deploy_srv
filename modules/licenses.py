@@ -204,7 +204,7 @@ class LicenseManager:
             os.chmod("i360deploy.sh", 0o755)
 
             # Ejecutar el script de instalación
-            install_command = f"bash i360deploy.sh --key{license_key}"
+            install_command = f"bash i360deploy.sh --key {license_key}"
             print(f"Ejecutando: {install_command}")
             
             install_result = subprocess.run(
