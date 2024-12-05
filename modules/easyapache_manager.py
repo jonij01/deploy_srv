@@ -7,13 +7,45 @@ from utils.discord_notifier import DiscordNotifier
 
 class EasyApacheManager:
     def __init__(self, config_path: str, notifier: Optional[DiscordNotifier] = None):
-        self.config_path = config_path
-        self.profile_path = os.path.join(config_path, 'config/easyapache/EasyGeneral.json')
-        self.backup_dir = os.path.join(config_path, 'easyapache/backups')
+        # Buscar el archivo EasyGeneral.json en el sistema
+        self.config_path = self._find_config_file()
+        if not self.config_path:
+            raise FileNotFoundError("No se pudo encontrar EasyGeneral.json en el sistema")
+            
+        # Una vez encontrado el archivo, establecer las rutas
+        self.config_dir = os.path.dirname(self.config_path)
+        self.profile_path = self.config_path
+        self.backup_dir = os.path.join(self.config_dir, 'backups')
         self.notifier = notifier
         
         # Crear directorio de backups si no existe
         os.makedirs(self.backup_dir, exist_ok=True)
+
+    def _find_config_file(self) -> str:
+        """
+        Busca el archivo EasyGeneral.json en ubicaciones comunes
+        """
+        possible_locations = [
+            '/root/deploy_srv/config/easyapache/EasyGeneral.json',
+            '/config/easyapache/EasyGeneral.json',
+            './config/easyapache/EasyGeneral.json',
+            '../config/easyapache/EasyGeneral.json'
+        ]
+
+        # Buscar en las ubicaciones posibles
+        for location in possible_locations:
+            if os.path.exists(location):
+                print(f"Archivo de configuración encontrado en: {location}")
+                return location
+
+        # Si no se encuentra, buscar recursivamente desde la raíz
+        for root, dirs, files in os.walk('/'):
+            if 'EasyGeneral.json' in files:
+                path = os.path.join(root, 'EasyGeneral.json')
+                print(f"Archivo de configuración encontrado en: {path}")
+                return path
+
+        return None
 
     def diagnose_easyapache_profile(self) -> None:
         """
