@@ -53,7 +53,7 @@ class CSFManager:
             config_files = ['csf.conf', 'csf.allow', 'csf.deny']
             
             for file in config_files:
-                source = f"config/csf/{file}"
+                source = f"/deploy_cPanelTools/config/csf/{file}"
                 dest = f"{self.csf_config_path}/{file}"
                 
                 if not os.path.exists(source):
