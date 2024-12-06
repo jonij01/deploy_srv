@@ -10,7 +10,8 @@ from modules.litespeed import LiteSpeedManager
 from modules.cron_manager import CronManager
 from utils.discord_notifier import DiscordNotifier
 from modules.easyapache_manager import EasyApacheManager
-
+from modules.sshd_modifier import SSHDModifier
+from modules.utilities_installer import UtilitiesInstaller
 
 class ServerSetupScript:
     def __init__(self):
@@ -29,6 +30,10 @@ class ServerSetupScript:
         self.litespeed_manager = LiteSpeedManager(self.notifier)
         self.cron_manager = CronManager(self.notifier)
         self.easyapache_manager = EasyApacheManager("/deploy_srv/config", self.notifier)
+        
+        # Añadir las nuevas clases
+        self.sshd_modifier = SSHDModifier(self.notifier)
+        self.utilities_installer = UtilitiesInstaller(self.notifier)
 
     def main_menu(self):
         """
@@ -36,18 +41,18 @@ class ServerSetupScript:
         """
         menu = '''
                      .  　　　　　　　 ✦ 　　　　   ✦ 　　　　
-    　　　　　　　　　　 　.　　　　　　    　　　　 　　　　　.
-             🚀 HELLO.CO HOSTING cPanelToolsInstall 🛸
-    　　　　　　　　　　　　　　　　　　  　　　　　　　　　　　
-    ╭──────────────────────────────────────────╮
-    │                                          │
-    │      [1] 🛠️  Automatic Setup            │
-    │                                          │
-    │      [2] 🎮  Manual Setup               │
-    │                                          │
-    │      [3] 🚪  Exit                       │
-    │                                          │
-    ╰──────────────────────────────────────────╯
+  　　　　　　　　　　 　.　　　　　　    　　　　 　　　　　.
+           🚀 HELLO.CO HOSTING cPanelToolsInstall 🛸
+  　　　　　　　　　　　　　　　　　　  　　　　　　　　　　　
+  ╭──────────────────────────────────────────╮
+  │                                          │
+  │      [1] 🛠️  Automatic Setup            │
+  │                                          │
+  │      [2] 🎮  Manual Setup               │
+  │                                          │
+  │      [3] 🚪  Exit                       │
+  │                                          │
+  ╰──────────────────────────────────────────╯
         '''
         print(menu)
         choice = input("Select your option: ")
@@ -58,27 +63,28 @@ class ServerSetupScript:
         Muestra el menú para la configuración manual y retorna la opción seleccionada.
         """
         menu = '''
-    ╭──────────────────────────────────────────────────╮
-    │           🔧 MANUAL CONFIGURATION 🔧             │
-    ╰──────────────────────────────────────────────────╯
-    
-     [1]  📊 Check Operating System
-     [2]  🔑 Install/Verify CloudLinux License
-     [3]  🎛️  Install cPanel
-     [4]  🔄 Update Operating System
-     [5]  🛡️  Install/Verify Imunify360
-     [6]  🔒 Install CSF
-     [7]  ⚙️  Configure CSF
-     [8]  📡 Configure Pure-FTPd
-     [9]  💾 Mount Disks
-     [10] 📦 Install Softaculous
-     [11] 💫 Install JetBackup
-     [12] 🔧 Mount EasyApache4 Profile
-     [13] ⚡ Install LiteSpeed
-     [14] ⏰ Add Cronjobs
-     [15] 🔙 Back to Main Menu
-    
-    ╭──────────────────────────────────────────────────╮
+  ╭──────────────────────────────────────────────────╮
+  │           🔧 MANUAL CONFIGURATION 🔧             │
+  ╰──────────────────────────────────────────────────╯
+  
+   [1]  📊 Check Operating System
+   [2]  🔑 Install/Verify CloudLinux License
+   [3]  🎛️  Install cPanel
+   [4]  🔄 Update Operating System
+   [5]  🛡️  Install/Verify Imunify360
+   [6]  🔒 Install CSF
+   [7]  ⚙️  Configure CSF
+   [8]  📡 Configure Pure-FTPd
+   [9]  💾 Mount Disks
+   [10] 📦 Install Softaculous
+   [11] 💫 Install JetBackup
+   [12] 🔧 Mount EasyApache4 Profile
+   [13] ⚡ Install LiteSpeed
+   [14] ⏰ Add Cronjobs
+   [15] 🌐 Configure SSHD
+   [16] 🔧 Install Utilities
+   [17] 🔙 Back to Main Menu
+   [18] 🚪 Exit
         '''
         print(menu)
         choice = input("Select your option: ")
@@ -174,6 +180,13 @@ class ServerSetupScript:
                 elif manual_choice == "14":
                     self.cron_manager.add_cronjobs()
                 elif manual_choice == "15":
+                    self.sshd_modifier.configure_sshd()
+                elif manual_choice == "16":
+                    self.utilities_installer.install_utilities()
+                elif manual_choice == "17":
+                    break
+                elif manual_choice == "18":
+                    print("Saliendo del script...")
                     break
                 else:
                     print("Opción no válida. Por favor, intente de nuevo.")
@@ -197,7 +210,6 @@ class ServerSetupScript:
             else:
                 print("Opción no válida. Por favor, intente de nuevo.")
 
-
 if __name__ == "__main__":
-    setup = ServerSetupScript()
-    setup.run()
+    script = ServerSetupScript()
+    script.run()
