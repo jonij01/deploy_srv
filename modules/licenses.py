@@ -172,56 +172,51 @@ class LicenseManager:
 
     def install_imunify360(self):
         """
-        Instala Imunify360 solo si es necesario
+        Instala Imunify360 de forma directa y simple
         """
         try:
-            # Si ya está instalado, no hacemos nada
+            # Verificar si ya está instalado
             if self.check_imunify360_installation():
+                print("✅ Imunify360 ya está instalado")
                 return True
 
             if not self.imunify360_key:
-                print("✗ Error: No se ha configurado la clave de Imunify360")
-                self.notifier.notify_error("Error: Clave de Imunify360 no configurada")
+                print("❌ Error: No se ha configurado la clave de Imunify360")
                 return False
 
-            print("\nInstalando Imunify360...")
+            print("\n📦 Instalando Imunify360...")
             
-            # Crear el directorio si no existe
-            os.makedirs(self.install_path, exist_ok=True)
+            # Limpiar instalaciones previas si existen
+            cleanup_command = "rm -f i360deploy.sh"
+            self.run_command(cleanup_command, shell=True)
             
             # Descargar el script de instalación
-            install_script = "i360deploy.sh"
-            install_script_path = os.path.join(self.install_path, install_script)
-            
-            print("Descargando script de instalación...")
-            wget_command = f"wget https://repo.imunify360.cloudlinux.com/defence360/i360deploy.sh -O {install_script_path}"
-            self.run_command(wget_command, shell=True)
+            download_command = "wget https://repo.imunify360.cloudlinux.com/defence360/i360deploy.sh"
+            returncode, _ = self.run_command(download_command, shell=True)
+            if returncode != 0:
+                print("❌ Error al descargar el script de instalación")
+                return False
             
             # Dar permisos de ejecución
-            os.chmod(install_script_path, 0o755)
+            chmod_command = "chmod +x i360deploy.sh"
+            self.run_command(chmod_command, shell=True)
             
-            # Ejecutar el script de instalación
-            print("Ejecutando script de instalación...")
-            install_command = f"bash {install_script_path} --key {self.imunify360_key}"
+            # Ejecutar la instalación
+            install_command = f"./i360deploy.sh --key {self.imunify360_key}"
             returncode, output = self.run_command(install_command, shell=True)
             
-            # Verificar errores específicos
-            if any("cp: cannot stat" in line for line in output):
-                print("✗ Error: Archivos de configuración no encontrados. Intentando actualizar repositorios...")
-                self.run_command("yum clean all && yum update -y")
-                returncode, output = self.run_command(install_command, shell=True)
-            
+            # Verificar la instalación
             if returncode == 0:
-                print("✓ Imunify360 instalado correctamente")
+                print("✅ Imunify360 instalado correctamente")
                 self.notifier.notify_success("Imunify360 instalado correctamente")
                 return True
             else:
-                print("✗ Error al instalar Imunify360")
+                print("❌ Error al instalar Imunify360")
                 self.notifier.notify_error("Error al instalar Imunify360")
                 return False
 
         except Exception as e:
-            print(f"✗ Error al instalar Imunify360: {str(e)}")
+            print(f"❌ Error al instalar Imunify360: {str(e)}")
             self.notifier.notify_error(f"Error al instalar Imunify360: {str(e)}")
             return False
 

@@ -26,7 +26,7 @@ class EasyApacheManager:
         Busca el archivo EasyGeneral.json en ubicaciones comunes
         """
         possible_locations = [
-            '/deploy_cPanelTools/config/easyapache',
+            '/deploy_cPanelTools/config/easyapache/EasyGeneral.json',
             '/config/easyapache/EasyGeneral.json',
             './config/easyapache/EasyGeneral.json',
             '../config/easyapache/EasyGeneral.json'

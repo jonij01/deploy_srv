@@ -120,9 +120,20 @@ class ServerSetupScript:
                 return
 
             # 2. Continuar con el resto de las instalaciones
+            print("\n➡️ Instalando CloudLinux...")
             self.license_manager.install_cloudlinux_license()
+            
+            # Añadir la instalación de Imunify360 aquí
+            print("\n➡️ Instalando Imunify360...")
+            self.license_manager.install_imunify360()
+            
+            print("\n➡️ Instalando cPanel...")
             self.cpanel_manager.install_cpanel()
+            
+            print("\n➡️ Actualizando sistema...")
             self.os_manager.update_system()
+            
+            print("\n➡️ Instalando CSF...")
             self.csf_manager.install_csf()
             self.csf_manager.configure_csf()
             self.ftp_manager.configure_ftp()
@@ -225,5 +236,5 @@ class ServerSetupScript:
                 print("Opción no válida. Por favor, intente de nuevo.")
 
 if __name__ == "__main__":
-    script = ServerSetupScript()
-    script.run()
+    setup = ServerSetupScript()
+    setup.run()
