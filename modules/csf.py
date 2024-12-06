@@ -5,114 +5,78 @@ from utils.discord_notifier import DiscordNotifier
 class CSFManager:
     def __init__(self, notifier: DiscordNotifier):
         self.notifier = notifier
-
-    def run_command(self, command, shell=False, check=False):
-        """
-        Ejecuta un comando y muestra la salida en tiempo real.
-        """
-        try:
-            process = subprocess.Popen(
-                command,
-                shell=shell,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                universal_newlines=True
-            )
-            output, error = process.communicate()
-            if process.returncode != 0 and check:
-                raise subprocess.CalledProcessError(process.returncode, command, output, error)
-            return process.returncode, output, error
-        except Exception as e:
-            print(f"Error ejecutando comando '{command}': {str(e)}")
-            return 1, "", str(e)
+        self.csf_config_path = "/etc/csf"
 
     def install_csf(self):
         """
-        Instala el firewall CSF descargándolo desde la fuente oficial.
+        Instala CSF desde el repositorio oficial
         """
         try:
-            print("Descargando e instalando CSF...")
+            print("Instalando CSF...")
 
-            # Obtener la ruta absoluta del script
-            script_dir = os.path.dirname(os.path.abspath(__file__))
+            # Eliminar instalaciones previas si existen
+            if os.path.exists("csf"):
+                subprocess.run(["rm", "-rf", "csf"], check=True)
+            if os.path.exists("csf.tgz"):
+                subprocess.run(["rm", "-f", "csf.tgz"], check=True)
 
-            # Descargar el paquete CSF desde la fuente oficial
-            _, _, error = self.run_command(["wget", "https://download.configserver.com/csf.tgz"], check=True, cwd=script_dir)
-            if error:
-                raise Exception(f"Error al descargar CSF: {error}")
+            # Descargar e instalar CSF
+            subprocess.run(["wget", "https://download.configserver.com/csf.tgz"], check=True)
+            subprocess.run(["tar", "-xzf", "csf.tgz"], check=True)
+            
+            # Instalar
+            os.chdir("csf")
+            subprocess.run(["sh", "install.sh"], check=True)
+            os.chdir("..")
 
-            # Extraer el archivo descargado
-            _, _, error = self.run_command(["tar", "-xzf", "csf.tgz"], check=True, cwd=script_dir)
-            if error:
-                raise Exception(f"Error al extraer el archivo CSF: {error}")
+            # Limpiar archivos de instalación
+            subprocess.run(["rm", "-rf", "csf", "csf.tgz"], check=True)
 
-            # Cambiar al directorio de instalación
-            os.chdir(os.path.join(script_dir, "csf"))
-
-            # Ejecutar el script de instalación
-            _, output, error = self.run_command(["sh", "install.sh"], check=True)
-            if error:
-                raise Exception(f"Error al ejecutar el script de instalación de CSF: {error}")
-            print(output)
-
-            # Volver al directorio anterior
-            os.chdir(script_dir)
-
-            # Limpiar archivos descargados
-            _, _, error = self.run_command(["rm", "-rf", "csf", "csf.tgz"], check=True, cwd=script_dir)
-            if error:
-                print(f"Error al limpiar archivos: {error}")
-
-            print("CSF instalado correctamente.")
-            self.notifier.notify_success("CSF instalado correctamente.")
+            print("CSF instalado correctamente")
+            self.notifier.notify_success("CSF instalado correctamente")
             return True
+
         except Exception as e:
-            print(f"Error al instalar CSF: {str(e)}")
-            self.notifier.notify_error(f"Error al instalar CSF: {str(e)}")
+            error_msg = f"Error en la instalación de CSF: {str(e)}"
+            print(error_msg)
+            self.notifier.notify_error(error_msg)
             return False
 
     def configure_csf(self):
         """
-        Configura CSF utilizando los archivos en config/csf/.
+        Reemplaza los archivos de configuración de CSF con los personalizados
         """
         try:
             print("Configurando CSF...")
+            
+            # Lista de archivos a reemplazar
+            config_files = ['csf.conf', 'csf.allow', 'csf.deny']
+            
+            for file in config_files:
+                source = f"config/csf/{file}"
+                dest = f"{self.csf_config_path}/{file}"
+                
+                if not os.path.exists(source):
+                    raise FileNotFoundError(f"Archivo de configuración no encontrado: {source}")
+                
+                # Crear backup del archivo original
+                if os.path.exists(dest):
+                    subprocess.run(["cp", "-f", dest, f"{dest}.bak"], check=True)
+                
+                # Copiar el nuevo archivo de configuración
+                subprocess.run(["cp", "-f", source, dest], check=True)
+                print(f"Archivo {file} reemplazado correctamente")
 
-            # Obtener la ruta absoluta del script
-            script_dir = os.path.dirname(os.path.abspath(__file__))
+            # Reiniciar CSF para aplicar cambios
+            print("Reiniciando CSF...")
+            subprocess.run(["csf", "-r"], check=True)
 
-            # Copiar archivos de configuración personalizados
-            _, _, error = self.run_command(["cp", os.path.join(script_dir, '..', 'config', 'csf', 'csf.conf'), "/etc/csf/csf.conf"], check=True)
-            if error:
-                raise Exception(f"Error al copiar csf.conf: {error}")
-
-            _, _, error = self.run_command(["cp", os.path.join(script_dir, '..', 'config', 'csf', 'csf.allow'), "/etc/csf/csf.allow"], check=True)
-            if error:
-                raise Exception(f"Error al copiar csf.allow: {error}")
-
-            _, _, error = self.run_command(["cp", os.path.join(script_dir, '..', 'config', 'csf', 'csf.deny'), "/etc/csf/csf.deny"], check=True)
-            if error:
-                raise Exception(f"Error al copiar csf.deny: {error}")
-
-            # Reiniciar CSF para aplicar los cambios
-            _, output, error = self.run_command(["csf", "-r"], check=True)
-            if error:
-                raise Exception(f"Error al reiniciar CSF: {error}")
-            print(output)
-
-            print("CSF configurado correctamente.")
-            self.notifier.notify_success("CSF configurado correctamente.")
+            print("CSF configurado correctamente")
+            self.notifier.notify_success("CSF configurado correctamente")
             return True
-        except Exception as e:
-            print(f"Error al configurar CSF: {str(e)}")
-            self.notifier.notify_error(f"Error al configurar CSF: {str(e)}")
-            return False
 
-    def install_and_configure_csf(self):
-        """
-        Instala y configura CSF, asegurando que el proceso continúe incluso si hay errores.
-        """
-        if self.install_csf() and self.configure_csf():
-            print("Instalación y configuración de CSF completadas con éxito.")
-        else:
-            print("Hubo errores durante la instalación o configuración de CSF, pero el script continuará.")
+        except Exception as e:
+            error_msg = f"Error en la configuración de CSF: {str(e)}"
+            print(error_msg)
+            self.notifier.notify_error(error_msg)
+            return False

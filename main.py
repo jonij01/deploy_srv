@@ -30,8 +30,7 @@ class ServerSetupScript:
         self.litespeed_manager = LiteSpeedManager(self.notifier)
         self.cron_manager = CronManager(self.notifier)
         self.easyapache_manager = EasyApacheManager("/deploy_srv/config", self.notifier)
-        
-        # Añadir las nuevas clases
+        # ClasesNuevas
         self.sshd_modifier = SSHDModifier(self.notifier)
         self.utilities_installer = UtilitiesInstaller(self.notifier)
 
@@ -84,7 +83,25 @@ class ServerSetupScript:
    [15] 🌐 Configure SSHD
    [16] 🔧 Install Utilities
    [17] 🔙 Back to Main Menu
-   [18] 🚪 Exit
+        '''
+        print(menu)
+        choice = input("Select your option: ")
+        return choice
+
+    def utilities_menu(self):
+        """
+        Muestra un submenú para seleccionar la utilidad a instalar.
+        """
+        menu = '''
+  ╭──────────────────────────────────────────╮
+  │      🔧 INSTALL UTILITIES SUBMENU       │
+  ╰──────────────────────────────────────────╯
+  
+   [1] Instalar htop
+   [2] Instalar Redis
+   [3] Mover workspace de JetBackup
+   [4] Mover scripts a la carpeta de mantenimiento
+   [5] Volver al menú manual
         '''
         print(menu)
         choice = input("Select your option: ")
@@ -102,25 +119,9 @@ class ServerSetupScript:
                 self.notifier.notify_error("Configuración de licencias fallida")
                 return
 
-            # 2. Instalar licencia de CloudLinux
-            if not self.license_manager.install_cloudlinux_license():
-                print("Error: Falló la instalación de la licencia de CloudLinux")
-                self.notifier.notify_error("Falló la instalación de CloudLinux")
-                return
-
-            # 3. Instalar cPanel
-            if not self.cpanel_manager.install_cpanel():
-                print("Error: Falló la instalación de cPanel")
-                self.notifier.notify_error("Falló la instalación de cPanel")
-                return
-
-            # 4. Instalar Imunify360
-            if not self.license_manager.install_imunify360():
-                print("Advertencia: Falló la instalación de Imunify360")
-                self.notifier.notify_warning("Falló la instalación de Imunify360")
-                # Continuamos con el resto del proceso aunque falle Imunify360
-
-            # Continuar con el resto de las instalaciones
+            # 2. Continuar con el resto de las instalaciones
+            self.license_manager.install_cloudlinux_license()
+            self.cpanel_manager.install_cpanel()
             self.os_manager.update_system()
             self.csf_manager.install_csf()
             self.csf_manager.configure_csf()
@@ -131,7 +132,12 @@ class ServerSetupScript:
             self.easyapache_manager.configure_easyapache()
             self.litespeed_manager.install_litespeed()
             self.cron_manager.add_cronjobs()
-
+            self.sshd_modifier.configure_sshd()
+            self.utilities_installer.install_htop()
+            self.utilities_installer.install_redis()
+            self.utilities_installer.move_jetbackup_workspace()
+            self.utilities_installer.move_scripts_to_maintenance()
+               
             print("¡Configuración automática completada con éxito!")
             self.notifier.notify_success("Configuración automática completada con éxito.")
         except Exception as e:
@@ -148,18 +154,13 @@ class ServerSetupScript:
                 if manual_choice == "1":
                     self.os_manager.check_os()
                 elif manual_choice == "2":
-                    # Asegurar que tenemos las licencias antes de instalar
-                    if not hasattr(self.license_manager, 'cloudlinux_key'):
-                        self.license_manager.set_license_keys()
+                    self.license_manager.set_license_keys()
                     self.license_manager.install_cloudlinux_license()
                 elif manual_choice == "3":
                     self.cpanel_manager.install_cpanel()
                 elif manual_choice == "4":
                     self.os_manager.update_system()
                 elif manual_choice == "5":
-                    # Asegurar que tenemos las licencias antes de instalar
-                    if not hasattr(self.license_manager, 'imunify360_key'):
-                        self.license_manager.set_license_keys()
                     self.license_manager.install_imunify360()
                 elif manual_choice == "6":
                     self.csf_manager.install_csf()
@@ -182,7 +183,20 @@ class ServerSetupScript:
                 elif manual_choice == "15":
                     self.sshd_modifier.configure_sshd()
                 elif manual_choice == "16":
-                    self.utilities_installer.install_utilities()
+                    while True:
+                        utility_choice = self.utilities_menu()
+                        if utility_choice == "1":
+                            self.utilities_installer.install_htop()
+                        elif utility_choice == "2":
+                            self.utilities_installer.install_redis()
+                        elif utility_choice == "3":
+                            self.utilities_installer.move_jetbackup_workspace()
+                        elif utility_choice == "4":
+                            self.utilities_installer.move_scripts_to_maintenance()
+                        elif utility_choice == "5":
+                            break
+                        else:
+                            print("Opción no válida. Por favor, intente de nuevo.")
                 elif manual_choice == "17":
                     break
                 elif manual_choice == "18":
