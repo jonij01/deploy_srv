@@ -34,40 +34,54 @@ class ServerSetupScript:
         """
         Muestra el menú principal del script y retorna la opción seleccionada.
         """
-        print("\n=========================================")
-        print("  Script de Configuración de Servidor")
-        print("=========================================")
-        print("1. Configuración automática")
-        print("2. Configuración manual")
-        print("3. Salir")
-        print("=========================================")
-        choice = input("Seleccione una opción: ")
+        menu = '''
+                     .  　　　　　　　 ✦ 　　　　   ✦ 　　　　
+    　　　　　　　　　　 　.　　　　　　    　　　　 　　　　　.
+             🚀 HELLO.CO HOSTING cPanelToolsInstall 🛸
+    　　　　　　　　　　　　　　　　　　  　　　　　　　　　　　
+    ╭──────────────────────────────────────────╮
+    │                                          │
+    │      [1] 🛠️  Automatic Setup            │
+    │                                          │
+    │      [2] 🎮  Manual Setup               │
+    │                                          │
+    │      [3] 🚪  Exit                       │
+    │                                          │
+    ╰──────────────────────────────────────────╯
+        '''
+        print(menu)
+        choice = input("Select your option: ")
         return choice
 
     def manual_menu(self):
         """
         Muestra el menú para la configuración manual y retorna la opción seleccionada.
         """
-        print("\n=========================================")
-        print("  Configuración Manual")
-        print("=========================================")
-        print("1. Verificar sistema operativo")
-        print("2. Instalar/verificar licencia de CloudLinux")
-        print("3. Instalar cPanel")
-        print("4. Actualizar sistema operativo")
-        print("5. Instalar/verificar Imunify360")
-        print("6. Instalar CSF")
-        print("7. Configurar CSF")
-        print("8. Configurar Pure-FTPd")
-        print("9. Montar discos")
-        print("10. Instalar Softaculous")
-        print("11. Instalar JetBackup")
-        print("12. Montar perfil de EasyApache4")
-        print("13. Instalar LiteSpeed")
-        print("14. Añadir Cronjobs")
-        print("15. Volver al menú principal")
-        print("=========================================")
-        choice = input("Seleccione un paso: ")
+        menu = '''
+    ╭──────────────────────────────────────────────────╮
+    │           🔧 MANUAL CONFIGURATION 🔧             │
+    ╰──────────────────────────────────────────────────╯
+    
+     [1]  📊 Check Operating System
+     [2]  🔑 Install/Verify CloudLinux License
+     [3]  🎛️  Install cPanel
+     [4]  🔄 Update Operating System
+     [5]  🛡️  Install/Verify Imunify360
+     [6]  🔒 Install CSF
+     [7]  ⚙️  Configure CSF
+     [8]  📡 Configure Pure-FTPd
+     [9]  💾 Mount Disks
+     [10] 📦 Install Softaculous
+     [11] 💫 Install JetBackup
+     [12] 🔧 Mount EasyApache4 Profile
+     [13] ⚡ Install LiteSpeed
+     [14] ⏰ Add Cronjobs
+     [15] 🔙 Back to Main Menu
+    
+    ╭──────────────────────────────────────────────────╮
+        '''
+        print(menu)
+        choice = input("Select your option: ")
         return choice
 
     def run_automatic_setup(self):

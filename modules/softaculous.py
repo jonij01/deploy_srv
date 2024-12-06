@@ -32,22 +32,50 @@ class SoftaculousManager:
 
     def _enable_ioncube(self) -> bool:
         """
-        Habilita ionCube usando los comandos modernos de WHM API
+        Habilita ionCube modificando la configuración y ejecutando los comandos necesarios
         """
         try:
             print("Habilitando ionCube...")
             
-            # Configurar ionCube usando WHM API
-            subprocess.run([
-                "whmapi1",
-                "set_tweaksetting",
-                "key=phploader",
-                "value=ioncube"
-            ], check=True)
+            # 1. Modificar el archivo de configuración
+            config_file = "/var/cpanel/cpanel.config"
+            config_updated = False
+            
+            # Leer el archivo actual
+            with open(config_file, 'r') as f:
+                lines = f.readlines()
+            
+            # Modificar o agregar la línea de phploader
+            with open(config_file, 'w') as f:
+                phploader_found = False
+                for line in lines:
+                    if line.startswith('phploader='):
+                        phploader_found = True
+                        if 'ioncube' not in line:
+                            if '=' in line.strip() and line.strip() != 'phploader=':
+                                line = line.strip() + ',ioncube\n'
+                            else:
+                                line = 'phploader=ioncube\n'
+                        config_updated = True
+                    f.write(line)
+                
+                if not phploader_found:
+                    f.write('phploader=ioncube\n')
+                    config_updated = True
 
-            # Actualizar configuración de PHP
-            subprocess.run(["/usr/local/cpanel/bin/checkphpini"], check=True)
-            subprocess.run(["/usr/local/cpanel/bin/install_php_inis"], check=True)
+            if config_updated:
+                print("Configuración de phploader actualizada")
+            
+            # 2. Ejecutar los comandos necesarios
+            commands = [
+                "/usr/local/cpanel/whostmgr/bin/whostmgr2 --updatetweaksettings",
+                "/usr/local/cpanel/bin/checkphpini",
+                "/usr/local/cpanel/bin/install_php_inis"
+            ]
+
+            for cmd in commands:
+                print(f"Ejecutando: {cmd}")
+                subprocess.run(cmd, shell=True, check=True)
 
             print("ionCube habilitado correctamente")
             self.notifier.notify_success("ionCube habilitado correctamente")
