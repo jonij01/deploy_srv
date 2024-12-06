@@ -1,5 +1,6 @@
 import os
 import subprocess
+import time
 from utils.discord_notifier import DiscordNotifier
 
 class LicenseManager:
@@ -9,9 +10,9 @@ class LicenseManager:
         self.imunify360_key = None
         self.install_path = "/deploy_srv/config"
 
-    def run_command(self, command, shell=False):
+    def run_command(self, command, shell=False, timeout=600):
         """
-        Ejecuta un comando y muestra la salida en tiempo real
+        Ejecuta un comando y muestra la salida en tiempo real con timeout
         """
         try:
             if shell:
@@ -31,7 +32,15 @@ class LicenseManager:
                 )
 
             output = []
+            start_time = time.time()
+
             while True:
+                # Verificar timeout
+                if time.time() - start_time > timeout:
+                    process.kill()
+                    print(f"Timeout después de {timeout} segundos")
+                    return 1, ["Timeout"]
+
                 line = process.stdout.readline()
                 error = process.stderr.readline()
                 
@@ -49,7 +58,27 @@ class LicenseManager:
 
         except Exception as e:
             print(f"Error ejecutando comando: {str(e)}")
-            return 1, []
+            return 1, [str(e)]
+
+    def wait_for_cpanel(self, timeout=300):
+        """
+        Espera a que cPanel esté completamente instalado y funcionando
+        """
+        print("\nEsperando a que cPanel esté listo...")
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            try:
+                if os.path.exists("/usr/local/cpanel/cpanel"):
+                    returncode, _ = self.run_command("systemctl status cpanel", shell=True)
+                    if returncode == 0:
+                        print("✓ cPanel está listo")
+                        return True
+            except Exception:
+                pass
+            print(".", end="", flush=True)
+            time.sleep(10)
+        print("\n✗ Timeout esperando a cPanel")
+        return False
 
     def check_cloudlinux_license(self):
         """
@@ -152,14 +181,25 @@ class LicenseManager:
                 return False
 
             print("\nInstalando licencia de CloudLinux...")
-            command = f"/usr/sbin/rhnreg_ks --activationkey={self.cloudlinux_key} --force --migrate-silently"
             
-            returncode, _ = self.run_command(command, shell=True)
+            # Limpiar la caché de yum
+            self.run_command("yum clean all", shell=True)
+            
+            # Instalar CloudLinux
+            command = f"/usr/sbin/rhnreg_ks --activationkey={self.cloudlinux_key} --force --migrate-silently"
+            returncode, output = self.run_command(command, shell=True)
             
             if returncode == 0:
                 print("✓ Licencia de CloudLinux instalada correctamente.")
                 self.notifier.notify_success("Licencia de CloudLinux instalada correctamente.")
-                return True
+                
+                # Verificar la instalación
+                time.sleep(10)
+                if self.check_cloudlinux_license():
+                    return True
+                else:
+                    print("✗ La verificación post-instalación falló")
+                    return False
             else:
                 print("✗ Error en la activación de CloudLinux")
                 self.notifier.notify_error("Error activando CloudLinux")
@@ -172,7 +212,7 @@ class LicenseManager:
 
     def install_imunify360(self):
         """
-        Instala Imunify360 de forma directa y simple
+        Instala Imunify360 con verificaciones mejoradas
         """
         try:
             # Verificar si ya está instalado
@@ -180,36 +220,50 @@ class LicenseManager:
                 print("✅ Imunify360 ya está instalado")
                 return True
 
+            # Verificar que cPanel esté listo
+            if not self.wait_for_cpanel():
+                print("❌ Error: cPanel no está listo para la instalación de Imunify360")
+                return False
+
             if not self.imunify360_key:
                 print("❌ Error: No se ha configurado la clave de Imunify360")
                 return False
 
             print("\n📦 Instalando Imunify360...")
             
-            # Limpiar instalaciones previas si existen
-            cleanup_command = "rm -f i360deploy.sh"
+            # Preparar el entorno
+            os.makedirs(self.install_path, exist_ok=True)
+            script_path = os.path.join(self.install_path, "i360deploy.sh")
+            
+            # Limpiar instalaciones previas
+            cleanup_command = f"rm -f {script_path}"
             self.run_command(cleanup_command, shell=True)
             
             # Descargar el script de instalación
-            download_command = "wget https://repo.imunify360.cloudlinux.com/defence360/i360deploy.sh"
+            download_command = f"wget https://repo.imunify360.cloudlinux.com/defence360/i360deploy.sh -O {script_path}"
             returncode, _ = self.run_command(download_command, shell=True)
             if returncode != 0:
                 print("❌ Error al descargar el script de instalación")
                 return False
             
             # Dar permisos de ejecución
-            chmod_command = "chmod +x i360deploy.sh"
-            self.run_command(chmod_command, shell=True)
+            os.chmod(script_path, 0o755)
             
             # Ejecutar la instalación
-            install_command = f"./i360deploy.sh --key {self.imunify360_key}"
+            install_command = f"bash {script_path} --key {self.imunify360_key}"
             returncode, output = self.run_command(install_command, shell=True)
             
-            # Verificar la instalación
             if returncode == 0:
                 print("✅ Imunify360 instalado correctamente")
-                self.notifier.notify_success("Imunify360 instalado correctamente")
-                return True
+                
+                # Verificar la instalación
+                time.sleep(30)
+                if self.check_imunify360_installation():
+                    self.notifier.notify_success("Imunify360 instalado y verificado correctamente")
+                    return True
+                else:
+                    print("❌ La verificación post-instalación falló")
+                    return False
             else:
                 print("❌ Error al instalar Imunify360")
                 self.notifier.notify_error("Error al instalar Imunify360")
