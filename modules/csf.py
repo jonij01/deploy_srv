@@ -33,18 +33,21 @@ class CSFManager:
         try:
             print("Descargando e instalando CSF...")
 
+            # Obtener la ruta absoluta del script
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+
             # Descargar el paquete CSF desde la fuente oficial
-            _, _, error = self.run_command(["wget", "https://download.configserver.com/csf.tgz"], check=True)
+            _, _, error = self.run_command(["wget", "https://download.configserver.com/csf.tgz"], check=True, cwd=script_dir)
             if error:
                 raise Exception(f"Error al descargar CSF: {error}")
 
             # Extraer el archivo descargado
-            _, _, error = self.run_command(["tar", "-xzf", "csf.tgz"], check=True)
+            _, _, error = self.run_command(["tar", "-xzf", "csf.tgz"], check=True, cwd=script_dir)
             if error:
                 raise Exception(f"Error al extraer el archivo CSF: {error}")
 
             # Cambiar al directorio de instalación
-            os.chdir("csf")
+            os.chdir(os.path.join(script_dir, "csf"))
 
             # Ejecutar el script de instalación
             _, output, error = self.run_command(["sh", "install.sh"], check=True)
@@ -53,10 +56,10 @@ class CSFManager:
             print(output)
 
             # Volver al directorio anterior
-            os.chdir("..")
+            os.chdir(script_dir)
 
             # Limpiar archivos descargados
-            _, _, error = self.run_command(["rm", "-rf", "csf", "csf.tgz"], check=True)
+            _, _, error = self.run_command(["rm", "-rf", "csf", "csf.tgz"], check=True, cwd=script_dir)
             if error:
                 print(f"Error al limpiar archivos: {error}")
 
@@ -75,16 +78,19 @@ class CSFManager:
         try:
             print("Configurando CSF...")
 
+            # Obtener la ruta absoluta del script
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+
             # Copiar archivos de configuración personalizados
-            _, _, error = self.run_command(["cp", "config/csf/csf.conf", "/etc/csf/csf.conf"], check=True)
+            _, _, error = self.run_command(["cp", os.path.join(script_dir, '..', 'config', 'csf', 'csf.conf'), "/etc/csf/csf.conf"], check=True)
             if error:
                 raise Exception(f"Error al copiar csf.conf: {error}")
 
-            _, _, error = self.run_command(["cp", "config/csf/csf.allow", "/etc/csf/csf.allow"], check=True)
+            _, _, error = self.run_command(["cp", os.path.join(script_dir, '..', 'config', 'csf', 'csf.allow'), "/etc/csf/csf.allow"], check=True)
             if error:
                 raise Exception(f"Error al copiar csf.allow: {error}")
 
-            _, _, error = self.run_command(["cp", "config/csf/csf.deny", "/etc/csf/csf.deny"], check=True)
+            _, _, error = self.run_command(["cp", os.path.join(script_dir, '..', 'config', 'csf', 'csf.deny'), "/etc/csf/csf.deny"], check=True)
             if error:
                 raise Exception(f"Error al copiar csf.deny: {error}")
 

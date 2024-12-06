@@ -58,9 +58,13 @@ class UtilitiesInstaller:
             if not os.path.exists('/mantenimiento'):
                 os.makedirs('/mantenimiento')
 
+            # Obtener la ruta absoluta del script
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            scripts_path = os.path.join(script_dir, 'config', 'scripts')
+
             # Mover scripts
-            for script in os.listdir('config/scripts'):
-                script_path = os.path.join('config/scripts', script)
+            for script in os.listdir(scripts_path):
+                script_path = os.path.join(scripts_path, script)
                 if os.path.isfile(script_path):
                     subprocess.run(['mv', script_path, '/mantenimiento/'], check=True)
 
@@ -71,18 +75,3 @@ class UtilitiesInstaller:
             print(f"Error al mover los scripts: {str(e)}")
             self.notifier.notify_error(f"Error al mover los scripts: {str(e)}")
             return False
-
-    def setup_utilities(self):
-        """
-        Configura las utilidades requeridas.
-        """
-        success = True
-        if not self.install_htop():
-            success = False
-        if not self.install_redis():
-            success = False
-        if not self.move_jetbackup_workspace():
-            success = False
-        if not self.move_scripts_to_maintenance():
-            success = False
-        return success
