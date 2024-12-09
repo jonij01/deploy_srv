@@ -87,10 +87,6 @@ Notas Importantes
 Ejecutar siempre como usuario root
 Realizar backup antes de modificaciones importantes
 Verificar compatibilidad con la versión de CloudLinux
-Soporte
-Para reportar problemas o solicitar ayuda:
 
-Abrir un issue en el repositorio
-Contactar al equipo de soporte
 Licencia
 Este software está protegido bajo términos de licencia propietaria.
