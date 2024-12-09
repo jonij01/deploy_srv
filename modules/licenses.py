@@ -8,7 +8,7 @@ class LicenseManager:
       self.notifier = notifier
       self.cloudlinux_key = None
       self.imunify360_key = None
-      self.install_path = "/deploy_srv/config"
+      self.install_path = "/deploy_cPanelTools/config"
 
   def run_command(self, command, shell=False, timeout=600):
       """
