@@ -30,7 +30,7 @@ class ServerSetupScript:
         self.jetbackup_manager = JetBackupManager(self.notifier)
         self.litespeed_manager = LiteSpeedManager(self.notifier)
         self.cron_manager = CronManager(self.notifier)
-        self.easyapache_manager = EasyApacheManager("/deploy_srv/config", self.notifier)
+        self.easyapache_manager = EasyApacheManager("/deploy_cPanelTools/config", self.notifier)
         # ClasesNuevas
         self.sshd_modifier = SSHDModifier(self.notifier)
         self.utilities_installer = UtilitiesInstaller(self.notifier)
