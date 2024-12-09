@@ -71,7 +71,6 @@ Este script proporciona una suite completa de herramientas para la gestión y au
 ```bash
 cd /
 git clone [URL_DEL_REPOSITORIO]
-cd panel-manager
 python3 main.py
 
 Uso
