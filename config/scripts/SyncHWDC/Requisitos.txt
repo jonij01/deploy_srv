@@ -1,0 +1,12 @@
+1. Crear API en Sheets desde el CloudConsole (cuenta de servicio):
+
+https://console.cloud.google.com/iam-admin/serviceaccounts?authuser=1&project=healthy-dragon-414300
+
+2. Darle permisos al sheets al correo synchwdc@healthy-dragon-414300.iam.gserviceaccount.com
+
+3. Instalar en el server:
+
+pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth-oauthlib gspread oauth2client
+
+# Sincronizar uso de HW de la VM en Sheets
+0 7 * * * python3 /mantenimiento/SyncHWDC/SyncHWDC.py
